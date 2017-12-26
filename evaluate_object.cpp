@@ -17,8 +17,6 @@
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/geometries/adapted/c_array.hpp>
 
-#include "mail.h"
-
 BOOST_GEOMETRY_REGISTER_C_ARRAY_CS(cs::cartesian)
 
 typedef boost::geometry::model::polygon<boost::geometry::model::d2::point_xy<double> > Polygon;
@@ -803,22 +801,28 @@ bool eval(string result_dir, string gt_dir){
 
     // read ground truth and result poses
     bool gt_success,det_success;
-    vector<tGroundtruth> gt   = loadGroundtruth(gt_dir + "/" + file_name,gt_success);
-    vector<tDetection>   det  = loadDetections(result_dir + "/data/" + file_name,
+
+		vector<tDetection>   det  = loadDetections(result_dir + "/" + file_name,
             compute_aos, eval_image, eval_ground, eval_3d, det_success);
-    groundtruth.push_back(gt);
-    detections.push_back(det);
+
+		if (!det_success) {
+      // printf("ERROR: Couldn't read: %s\n", file_name);
+      // return false;
+			continue;
+    }
+
+    vector<tGroundtruth> gt   = loadGroundtruth(gt_dir + "/" + file_name,gt_success);
 
     // check for errors
     if (!gt_success) {
       printf("ERROR: Couldn't read: %s of ground truth. Please write me an email!\n", file_name);
       return false;
     }
-    if (!det_success) {
-      printf("ERROR: Couldn't read: %s\n", file_name);
-      return false;
-    }
+    
+    groundtruth.push_back(gt);
+    detections.push_back(det);
   }
+
   printf("  done.\n");
 
   // holds pointers for result files
@@ -913,13 +917,10 @@ int32_t main (int32_t argc,char *argv[]) {
   if (eval(result_dir, gt_dir)) {
     printf("succeessfully generated result!\n");
   } else {
-    system(("rm -r results/" + result_sha).c_str());
+    system(("rm -r " + result_dir + "/plot").c_str());
     printf("An error occured while processing your results.\n");
     printf("Please make sure that the data in your zip archive has the right format!\n");
   }
-
-  // send mail and exit
-  delete mail;
 
   return 0;
 }
